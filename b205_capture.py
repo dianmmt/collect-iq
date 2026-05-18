@@ -315,11 +315,11 @@ def save_iq(samples, output_path, fmt="fc32", metadata=None):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Thu va luu IQ bang USRP B205 mini")
     parser.add_argument("--freq",     type=float, default=2450e6, help="Tan so trung tam (Hz)")
-    parser.add_argument("--rate",     type=float, default=20e6,   help="Sample rate (S/s), toi da ~56e6")
-    parser.add_argument("--gain",     type=float, default=20,     help="RX gain (dB)")
+    parser.add_argument("--rate",     type=float, default=50e6,   help="Sample rate (S/s), toi da ~56e6")
+    parser.add_argument("--gain",     type=float, default=0,     help="RX gain (dB)")
     parser.add_argument("--bw",       type=float, default=None,   help="Bandwidth analog (Hz)")
     parser.add_argument("--duration", type=float, default=0.1,    help="Thoi gian thu (giay)")
-    parser.add_argument("--fmt",      type=str,   default="fc32",
+    parser.add_argument("--fmt",      type=str,   default="bin",
                         choices=["fc32", "sc16", "npy", "bin"],   help="Dinh dang file luu")
     parser.add_argument("--output",   type=str,   default=None,   help="Duong dan file output (khong can duoi)")
     args = parser.parse_args()

@@ -28,7 +28,7 @@ except ImportError:
 #  CẤU HÌNH — chỉnh sửa tại đây
 # ═════════════════════════════════════════════════════════════
 
-INPUT_FILE    = "iq_20260515_144958.bin"   # đường dẫn file .bin cần xử lý
+INPUT_FILE    = "uav_2.bin"   # đường dẫn file .bin cần xử lý
 
 SAMPLE_RATE   = 50e6            # Hz — phải khớp với lúc thu
 CENTER_FREQ   = 2450e6          # Hz — chỉ dùng để tham khảo

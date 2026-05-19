@@ -7,9 +7,9 @@ from datetime import datetime
 
 
 def set_sdr_b205(
-    rx_freq=2.437e9,
-    sample_rate=25e6,
-    gain=20,
+    rx_freq=2.450e6,
+    sample_rate=50e6,
+    gain=0,
     bandwidth=None,
     antenna="RX2",
     channel=0,

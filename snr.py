@@ -4,13 +4,13 @@ from scipy import signal as sp_signal
 
 # --- Đọc file IQ (raw binary float32 hoặc complex64) ---
 # Nếu dùng UHD/GNU Radio lưu ra file
-iq = np.fromfile("iq_20260515_144958.bin", dtype=np.complex64)
+iq = np.fromfile("output.bin", dtype=np.complex64)
 
 # Hoặc từ uhd_rx_cfile / osmocom
 # iq = np.fromfile("capture.32fc", dtype=np.complex64)
 
-sample_rate = 1e6   # Hz — điều chỉnh theo cấu hình B205
-center_freq = 900e6 # Hz
+sample_rate = 50e6   # Hz — điều chỉnh theo cấu hình B205
+center_freq = 2450e6 # Hz
 
 # --- Tính PSD bằng Welch ---
 freqs, psd = sp_signal.welch(iq, fs=sample_rate,

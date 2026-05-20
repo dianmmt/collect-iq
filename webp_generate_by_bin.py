@@ -28,7 +28,11 @@ except ImportError:
 #  CẤU HÌNH — chỉnh sửa tại đây
 # ═════════════════════════════════════════════════════════════
 
+<<<<<<< HEAD
 INPUT_FILE    = "uav_2.bin"   # đường dẫn file .bin cần xử lý
+=======
+INPUT_FILE    = "signal/uav_snr_-10.0dB.bin"   # đường dẫn file .bin cần xử lý
+>>>>>>> f7a65cc (lastest version of ktc)
 
 SAMPLE_RATE   = 50e6            # Hz — phải khớp với lúc thu
 CENTER_FREQ   = 2450e6          # Hz — chỉ dùng để tham khảo

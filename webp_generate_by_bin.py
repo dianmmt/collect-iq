@@ -24,10 +24,20 @@ except ImportError:
     from scipy.signal import stft as scipy_stft
     from scipy.signal import hamming as scipy_hamming
 
+from config import (
+    SAMPLE_RATE, CENTER_FREQ,
+    DURATION_SEC as DURATION_TIME,
+    STFT_POINT, OVERLAP,
+    SPEC_OUTPUT_DIR as OUTPUT_DIR, CMAP,
+    SAVE_FORMAT, WEBP_QUALITY, JPEG_QUALITY,
+    IMG_WIDTH, IMG_HEIGHT, N_SAVE_WORKERS,
+)
+
 # ═════════════════════════════════════════════════════════════
 #  CẤU HÌNH — chỉnh sửa tại đây
 # ═════════════════════════════════════════════════════════════
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 INPUT_FILE    = "uav_2.bin"   # đường dẫn file .bin cần xử lý
 =======
@@ -57,6 +67,9 @@ IMG_WIDTH     = 1000            # px chiều ngang ảnh output
 IMG_HEIGHT    = 700             # px chiều dọc  ảnh output
 
 N_SAVE_WORKERS = 4              # số thread lưu ảnh song song
+=======
+INPUT_FILE = "uav_2205_10lift_20downn.bin"  # đường dẫn file .bin cần xử lý
+>>>>>>> d1850a4 (update source adding noise)
 
 # ═════════════════════════════════════════════════════════════
 

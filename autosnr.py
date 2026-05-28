@@ -7,17 +7,33 @@ Hỗ trợ 2 chế độ tìm ngưỡng:
 """
 
 import os
+<<<<<<< HEAD
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import welch
+=======
+import argparse
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.signal import welch
+from scipy.ndimage import uniform_filter1d
+
+from config import SAMPLE_RATE, NPERSEG
+>>>>>>> d1850a4 (update source adding noise)
 
 # ══════════════════════════════════════════════════════════════════
 # THAM SỐ ĐẦU VÀO  ←  chỉnh tại đây
 # ══════════════════════════════════════════════════════════════════
+<<<<<<< HEAD
 input_file = "signal/ktc-50db.bin"
 fs         = 50_000_000.0   # Sample rate: 50 MHz (USRP B205 mini)
 nperseg    = 1024           # Segment Welch
+=======
+input_file = "signal/iq_20260521_144402.bin"
+fs         = SAMPLE_RATE
+nperseg    = NPERSEG
+>>>>>>> d1850a4 (update source adding noise)
 
 # ── Chọn chế độ threshold ──────────────────────────────────────
 THRESHOLD_MODE = "auto"     # "auto" hoặc "manual"
@@ -344,7 +360,135 @@ def plot_results(r: dict, fs: float, input_file: str) -> None:
                        edgecolor='gray', alpha=0.9))
 
     plt.tight_layout()
+<<<<<<< HEAD
     out = "amplitude_analysis.png"
+=======
+    stem = os.path.splitext(os.path.basename(input_file))[0]
+    out = f"amplitude_analysis_{stem}.png"
+    plt.savefig(out, dpi=150, bbox_inches='tight')
+    print(f"✓  Đã lưu đồ thị: {out}")
+    plt.show()
+
+
+# ══════════════════════════════════════════════════════════════════
+# DUAL SLIDING WINDOW — phát hiện biên tín hiệu miền thời gian
+# ══════════════════════════════════════════════════════════════════
+def dual_sliding_window_detect(iq: np.ndarray, fs_val: float,
+                                short_ms: float = 1.0,
+                                long_ms: float  = 10.0,
+                                threshold_factor: float = 3.0) -> tuple:
+    """
+    Phát hiện vị trí bắt đầu (Ns) và kết thúc (Ne) của tín hiệu trong miền thời gian.
+
+    Thuật toán: cửa sổ trượt kép (dual sliding window)
+      - Cửa sổ ngắn (short_ms): phát hiện năng lượng tín hiệu tức thời
+      - Cửa sổ dài  (long_ms) : ước lượng năng lượng nhiễu nền
+      - Ngưỡng: short_energy > threshold_factor × long_energy
+
+    Trả về (Ns, Ne) — chỉ số mẫu bắt đầu và kết thúc tín hiệu.
+    Nếu không phát hiện được tín hiệu, trả về (0, len(iq)).
+    """
+    short_win = max(1, int(short_ms * 1e-3 * fs_val))
+    long_win  = max(1, int(long_ms  * 1e-3 * fs_val))
+
+    power        = np.abs(iq) ** 2
+    short_energy = uniform_filter1d(power, size=short_win,  mode='nearest')
+    long_energy  = uniform_filter1d(power, size=long_win,   mode='nearest')
+
+    detect = short_energy > threshold_factor * (long_energy + 1e-30)
+
+    starts = np.where(np.diff(detect.astype(np.int8)) == 1)[0]
+    ends   = np.where(np.diff(detect.astype(np.int8)) == -1)[0]
+
+    if detect[0]:
+        starts = np.concatenate([[0], starts])
+    if detect[-1]:
+        ends = np.concatenate([ends, [len(iq) - 1]])
+
+    if len(starts) == 0 or len(ends) == 0:
+        return 0, len(iq)
+
+    # Lấy đoạn tín hiệu dài nhất
+    lengths = ends[:len(starts)] - starts[:len(ends)]
+    best    = int(np.argmax(lengths))
+    return int(starts[best]), int(ends[best])
+
+
+def compute_snr_energy(iq: np.ndarray, Ns: int, Ne: int) -> float:
+    """
+    Tính SNR theo phương pháp năng lượng miền thời gian (time-domain energy method).
+
+      P_S+N = mean(|iq[Ns:Ne]|²)           — năng lượng vùng tín hiệu
+      P_N   = mean(|iq[:Ns] ∪ iq[Ne:]|²)  — năng lượng nhiễu thuần
+      SNR   = 10·log10((P_S+N − P_N) / P_N)
+
+    Trả về SNR (dB).
+    """
+    if Ne <= Ns:
+        raise ValueError(f"Ne ({Ne}) phải lớn hơn Ns ({Ns}).")
+
+    signal_region = iq[Ns:Ne]
+    noise_region  = np.concatenate([iq[:Ns], iq[Ne:]])
+
+    if len(noise_region) < 100:
+        raise ValueError(
+            f"Vùng nhiễu quá ngắn ({len(noise_region)} mẫu). "
+            "Điều chỉnh short_ms, long_ms hoặc dsw_factor."
+        )
+
+    P_SN = float(np.mean(np.abs(signal_region) ** 2))
+    P_N  = float(np.mean(np.abs(noise_region)  ** 2))
+    P_S  = P_SN - P_N
+
+    if P_N <= 0:
+        raise ValueError("Công suất nhiễu P_N ≤ 0.")
+    if P_S <= 0:
+        raise ValueError(
+            f"P_S = P_SN − P_N = {P_SN:.3e} − {P_N:.3e} = {P_S:.3e} ≤ 0.\n"
+            "  → Tín hiệu quá yếu hoặc ngưỡng phát hiện không phù hợp."
+        )
+
+    return 10.0 * np.log10(P_S / P_N)
+
+
+def plot_energy_results(iq: np.ndarray, Ns: int, Ne: int,
+                        snr_db: float, fs_val: float,
+                        input_file: str) -> None:
+    """Vẽ công suất tức thời theo thời gian với Ns, Ne được đánh dấu."""
+    power = np.abs(iq) ** 2
+
+    # Downsample cho hiển thị (tối đa 20000 điểm)
+    stride = max(1, len(power) // 20000)
+    t_ms   = np.arange(0, len(power), stride) / fs_val * 1000
+    p_ds   = power[::stride]
+
+    fig, ax = plt.subplots(figsize=(13, 5))
+    ax.plot(t_ms, p_ds, color='navy', lw=0.6, label='Công suất tức thời |IQ|²')
+    ax.axvline(Ns / fs_val * 1000, color='limegreen', ls='--', lw=1.5,
+               label=f'Ns = {Ns:,}  ({Ns/fs_val*1000:.3f} ms)')
+    ax.axvline(Ne / fs_val * 1000, color='tomato',    ls='--', lw=1.5,
+               label=f'Ne = {Ne:,}  ({Ne/fs_val*1000:.3f} ms)')
+
+    noise_reg = np.concatenate([iq[:Ns], iq[Ne:]])
+    P_N = float(np.mean(np.abs(noise_reg) ** 2)) if len(noise_reg) > 0 else 0
+    ax.axhline(P_N, color='orange', ls=':', lw=1.3,
+               label=f'P_noise = {P_N:.4e}')
+
+    ax.set_xlabel('Thời gian (ms)')
+    ax.set_ylabel('Công suất |IQ|²')
+    ax.set_title(
+        f"Dual Sliding Window — {os.path.basename(input_file)}\n"
+        f"Ns={Ns:,}  Ne={Ne:,}  "
+        f"Độ dài tín hiệu={Ne-Ns:,} mẫu  |  SNR = {snr_db:.2f} dB",
+        fontsize=10, fontweight='bold'
+    )
+    ax.legend(fontsize=9, ncol=2)
+    ax.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    stem = os.path.splitext(os.path.basename(input_file))[0]
+    out  = f"dsw_{stem}.png"
+>>>>>>> d1850a4 (update source adding noise)
     plt.savefig(out, dpi=150, bbox_inches='tight')
     print(f"✓  Đã lưu đồ thị: {out}")
     plt.show()
@@ -354,6 +498,7 @@ def plot_results(r: dict, fs: float, input_file: str) -> None:
 # MAIN
 # ══════════════════════════════════════════════════════════════════
 if __name__ == "__main__":
+<<<<<<< HEAD
     fpath = sys.argv[1] if len(sys.argv) > 1 else input_file
 
     print(f"{'─'*50}")
@@ -375,3 +520,59 @@ if __name__ == "__main__":
 
     print_results(results, fs)
     plot_results(results, fs, fpath)
+=======
+    parser = argparse.ArgumentParser(
+        description="Phân tích SNR file IQ (Welch PSD hoặc Dual Sliding Window)"
+    )
+    parser.add_argument("file", nargs="?", default=input_file,
+                        help="Đường dẫn file IQ (.bin)")
+    parser.add_argument("--method", choices=["welch", "energy"], default="welch",
+                        help="Phương pháp tính SNR: welch (mặc định) hoặc energy (dual sliding window)")
+    parser.add_argument("--short-ms",  type=float, default=1.0,
+                        help="Độ dài cửa sổ ngắn (ms) — chỉ dùng với --method energy")
+    parser.add_argument("--long-ms",   type=float, default=10.0,
+                        help="Độ dài cửa sổ dài (ms) — chỉ dùng với --method energy")
+    parser.add_argument("--dsw-factor", type=float, default=3.0,
+                        help="Hệ số ngưỡng dual-window — chỉ dùng với --method energy")
+    args = parser.parse_args()
+
+    fpath = args.file
+
+    print(f"\n{'─'*55}")
+    print(f"  File   : {fpath}")
+    print(f"  Method : {args.method}")
+    print(f"{'─'*55}")
+
+    print("Đang đọc file ...")
+    iq = load_iq(fpath)
+    print(f"Đã đọc {len(iq):,} mẫu IQ.\n")
+
+    if args.method == "welch":
+        print("Đang tính toán Welch PSD ...")
+        results = compute_amplitude(
+            iq, fs, nperseg,
+            threshold_mode=THRESHOLD_MODE,
+            max_signal_pct=MAX_SIGNAL_PCT,
+            manual_factor=MANUAL_FACTOR,
+        )
+        print_results(results, fs)
+        plot_results(results, fs, fpath)
+
+    else:  # energy — dual sliding window
+        print(f"Dual Sliding Window: short={args.short_ms} ms, "
+              f"long={args.long_ms} ms, factor={args.dsw_factor}")
+        Ns, Ne = dual_sliding_window_detect(
+            iq, fs,
+            short_ms=args.short_ms,
+            long_ms=args.long_ms,
+            threshold_factor=args.dsw_factor,
+        )
+        print(f"  Ns = {Ns:,}  ({Ns/fs*1000:.3f} ms)")
+        print(f"  Ne = {Ne:,}  ({Ne/fs*1000:.3f} ms)")
+        print(f"  Độ dài tín hiệu: {Ne-Ns:,} mẫu  ({(Ne-Ns)/fs*1000:.3f} ms)")
+
+        snr_db = compute_snr_energy(iq, Ns, Ne)
+        print(f"\n  SNR (energy method) = {snr_db:.2f} dB\n")
+
+        plot_energy_results(iq, Ns, Ne, snr_db, fs, fpath)
+>>>>>>> d1850a4 (update source adding noise)

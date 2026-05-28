@@ -57,34 +57,20 @@ except ImportError:
 
 import uhd
 
+from config import (
+    CENTER_FREQ, SAMPLE_RATE, GAIN, ANTENNA,
+    DURATION_SEC as DURATION_TIME,
+    STFT_POINT, OVERLAP,
+    SPEC_OUTPUT_DIR, CMAP,
+    SAVE_FORMAT, WEBP_QUALITY, JPEG_QUALITY,
+    IMG_WIDTH, IMG_HEIGHT, N_SAVE_WORKERS,
+)
+
 # ─────────────────── THAM SỐ CẤU HÌNH ───────────────────────
-CENTER_FREQ   = 2450e6
-SAMPLE_RATE   = 50e6
-GAIN          = 20
-USE_AGC       = False
-
-
-DURATION_TIME = 0.1        	  # giây / ảnh
-STFT_POINT    = 1024
-OVERLAP       = 0.7
-
-OUTPUT_DIR    = "noise_gain20"
-ANTENNA       = "RX2"
-CMAP          = "hot"        # bất kỳ colormap matplotlib hợp lệ jet, grey, viridis, inferno, hot
-
-# ── Định dạng lưu ──────────────────────────────────────────────
-# "webp_lossy"    → WebP quality=WEBP_QUALITY  (khuyến nghị: nhỏ + nhanh)
-# "webp_lossless" → WebP lossless              (không mất dữ liệu màu)
-# "jpeg"          → JPEG quality=JPEG_QUALITY  (tương thích rộng)
-SAVE_FORMAT: Literal["webp_lossy", "webp_lossless", "jpeg"] = "webp_lossy"
-
-WEBP_QUALITY  = 80           # 0-100, chỉ dùng khi SAVE_FORMAT="webp_lossy"
-JPEG_QUALITY  = 85           # 0-95, chỉ dùng khi SAVE_FORMAT="jpeg"
-IMG_WIDTH     = 1000         # px chiều ngang ảnh output
-IMG_HEIGHT    = 700          # px chiều dọc ảnh output
+USE_AGC    = False
+OUTPUT_DIR = SPEC_OUTPUT_DIR
 # ─────────────────────────────────────────────────────────────
 
-N_SAVE_WORKERS = 4
 IQ_QUEUE_MAX   = 4
 IMG_QUEUE_MAX  = 8
 

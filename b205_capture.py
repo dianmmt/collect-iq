@@ -5,6 +5,11 @@ import argparse
 from pathlib import Path
 from datetime import datetime
 
+from config import (
+    CENTER_FREQ, SAMPLE_RATE, GAIN, BANDWIDTH, ANTENNA,
+    DURATION_SEC, OUTPUT_FMT, IQ_OUTPUT_DIR,
+)
+
 
 def set_sdr_b205(
     rx_freq=2.450e6,
@@ -314,19 +319,19 @@ def save_iq(samples, output_path, fmt="fc32", metadata=None):
 # ──────────────────────────────────────────────
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Thu va luu IQ bang USRP B205 mini")
-    parser.add_argument("--freq",     type=float, default=2450e6, help="Tan so trung tam (Hz)")
-    parser.add_argument("--rate",     type=float, default=50e6,   help="Sample rate (S/s), toi da ~56e6")
-    parser.add_argument("--gain",     type=float, default=0,     help="RX gain (dB)")
-    parser.add_argument("--bw",       type=float, default=None,   help="Bandwidth analog (Hz)")
-    parser.add_argument("--duration", type=float, default=0.1,    help="Thoi gian thu (giay)")
-    parser.add_argument("--fmt",      type=str,   default="bin",
-                        choices=["fc32", "sc16", "npy", "bin"],   help="Dinh dang file luu")
-    parser.add_argument("--output",   type=str,   default=None,   help="Duong dan file output (khong can duoi)")
+    parser.add_argument("--freq",     type=float, default=CENTER_FREQ, help="Tan so trung tam (Hz)")
+    parser.add_argument("--rate",     type=float, default=SAMPLE_RATE, help="Sample rate (S/s), toi da ~56e6")
+    parser.add_argument("--gain",     type=float, default=GAIN,        help="RX gain (dB)")
+    parser.add_argument("--bw",       type=float, default=BANDWIDTH,   help="Bandwidth analog (Hz)")
+    parser.add_argument("--duration", type=float, default=DURATION_SEC, help="Thoi gian thu (giay)")
+    parser.add_argument("--fmt",      type=str,   default=OUTPUT_FMT,
+                        choices=["fc32", "sc16", "npy", "bin"],          help="Dinh dang file luu")
+    parser.add_argument("--output",   type=str,   default=None,          help="Duong dan file output (khong can duoi)")
     args = parser.parse_args()
 
     if args.output is None:
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-        out_path = Path(f"iq_{ts}")
+        out_path = Path(IQ_OUTPUT_DIR) / f"iq_{ts}"
     else:
         out_path = Path(args.output)
 
@@ -338,7 +343,7 @@ if __name__ == "__main__":
         sample_rate=args.rate,
         gain=args.gain,
         bandwidth=args.bw,
-        antenna="RX2",
+        antenna=ANTENNA,
     )
 
     # 2. Tao streamer
@@ -372,7 +377,7 @@ if __name__ == "__main__":
         "duration_sec":     args.duration,
         "num_samples":      stats["received_samps"],
         "format":           args.fmt,
-        "antenna":          "RX2",
+        "antenna":          ANTENNA,
         "capture_time":     datetime.now().isoformat(),
     }
 

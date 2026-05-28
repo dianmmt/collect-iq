@@ -1,0 +1,12 @@
+# IQ Capture Metadata
+# Generated: 2026-05-19T15:22:28.312131
+device = USRP B205 mini
+rx_freq_hz = 2450000000.0
+sample_rate_hz = 50000000.0
+gain_db = 0
+bandwidth_hz = None
+duration_sec = 0.1
+num_samples = 5000000
+format = bin
+antenna = RX2
+capture_time = 2026-05-19T15:22:28.288827

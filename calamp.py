@@ -1,9 +1,13 @@
+<<<<<<< HEAD
 
+=======
+>>>>>>> d1850a4 (update source adding noise)
 import os
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import welch
+<<<<<<< HEAD
 #tính toán biên độ trung bình của tín hiệu và nhiễu, tính toán snr , điều chỉnh snr như mong muốn
 # ══════════════════════════════════════════════════════════════════
 # THAM SỐ ĐẦU VÀO
@@ -16,6 +20,17 @@ nperseg    = 1024           # Độ dài segment Welch (tăng → phân giải t
 # Bin có PSD > noise_floor 
 # × factor → coi là bin tín hiệu
 SIGNAL_THRESHOLD_FACTOR = 2  # tương đương +6 dB trên noise floor
+=======
+
+from config import SAMPLE_RATE, NPERSEG, SIGNAL_THRESHOLD_FACTOR
+
+# ══════════════════════════════════════════════════════════════════
+# THAM SỐ ĐẦU VÀO
+# ══════════════════════════════════════════════════════════════════
+input_file = "iq_capture/iq_20260522_085842.bin"
+fs         = SAMPLE_RATE
+nperseg    = NPERSEG
+>>>>>>> d1850a4 (update source adding noise)
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -40,6 +55,7 @@ def compute_amplitude(iq: np.ndarray, fs: float, nperseg: int,
                       threshold_factor: float) -> dict:
     N = len(iq)
 
+<<<<<<< HEAD
     # ── Bước 1: Welch PSD ─────────────────────────────────────────
     f, psd = welch(iq, fs=fs, window='hann', nperseg=nperseg,
                    return_onesided=False, scaling='density')
@@ -53,6 +69,20 @@ def compute_amplitude(iq: np.ndarray, fs: float, nperseg: int,
     threshold   = noise_floor_density * threshold_factor
     signal_mask = psd > threshold    # bin có năng lượng cao → tín hiệu
     noise_mask  = ~signal_mask       # bin còn lại → nhiễu
+=======
+    # Bước 1: Welch PSD
+    f, psd = welch(iq, fs=fs, window='hann', nperseg=nperseg,
+                   return_onesided=False, scaling='density')
+    delta_f = fs / len(f)
+
+    # Bước 2: Noise floor = Median PSD
+    noise_floor_density = np.median(psd)
+
+    # Bước 3: Phân loại bin tín hiệu / nhiễu
+    threshold   = noise_floor_density * threshold_factor
+    signal_mask = psd > threshold
+    noise_mask  = ~signal_mask
+>>>>>>> d1850a4 (update source adding noise)
 
     n_signal_bins = int(signal_mask.sum())
     n_noise_bins  = int(noise_mask.sum())
@@ -63,6 +93,7 @@ def compute_amplitude(iq: np.ndarray, fs: float, nperseg: int,
     if n_signal_bins == 0:
         raise ValueError("Không tìm được bin tín hiệu. Tăng SIGNAL_THRESHOLD_FACTOR.")
 
+<<<<<<< HEAD
     # ── Bước 4: Tính công suất ────────────────────────────────────
     # Công suất tổng từ miền thời gian (Parseval — chính xác tuyệt đối)
     p_total = float(np.mean(np.abs(iq) ** 2))
@@ -74,12 +105,21 @@ def compute_amplitude(iq: np.ndarray, fs: float, nperseg: int,
 
     # Công suất tín hiệu = tổng - nhiễu
     p_signal = p_total - p_noise
+=======
+    # Bước 4: Tính công suất
+    p_total     = float(np.mean(np.abs(iq) ** 2))
+    fill_factor = n_total_bins / n_noise_bins
+    p_noise     = float(np.sum(psd[noise_mask]) * delta_f * fill_factor)
+    p_signal    = p_total - p_noise
+
+>>>>>>> d1850a4 (update source adding noise)
     if p_signal <= 0:
         raise ValueError(
             f"P_signal ≤ 0 ({p_signal:.2e}). Tín hiệu quá yếu hoặc "
             "threshold_factor quá cao — hãy giảm SIGNAL_THRESHOLD_FACTOR."
         )
 
+<<<<<<< HEAD
     # ── Bước 5: Biên độ RMS ───────────────────────────────────────
     # A_rms = √P  (đơn vị tương đương với đơn vị của mẫu IQ)
     amp_signal_rms = float(np.sqrt(p_signal))
@@ -136,6 +176,48 @@ def compute_amplitude(iq: np.ndarray, fs: float, nperseg: int,
         "n_total_bins"    : n_total_bins,
         "delta_f"         : delta_f,
         "N_samples"       : N,
+=======
+    # Bước 5: Biên độ RMS
+    amp_signal_rms  = float(np.sqrt(p_signal))
+    amp_noise_rms   = float(np.sqrt(p_noise))
+    amp_total_rms   = float(np.sqrt(p_total))
+    amp_signal_peak = amp_signal_rms * np.sqrt(2)
+    amp_noise_peak  = amp_noise_rms  * np.sqrt(2)
+    amp_signal_db   = 20 * np.log10(amp_signal_rms + 1e-30)
+    amp_noise_db    = 20 * np.log10(amp_noise_rms  + 1e-30)
+    amp_total_db    = 20 * np.log10(amp_total_rms  + 1e-30)
+    snr_db          = 10 * np.log10(p_signal / p_noise)
+
+    center_freq      = float(f[int(np.argmax(psd))])
+    signal_bandwidth = n_signal_bins * delta_f
+
+    return {
+        "amp_signal_rms"      : amp_signal_rms,
+        "amp_noise_rms"       : amp_noise_rms,
+        "amp_total_rms"       : amp_total_rms,
+        "amp_signal_peak"     : amp_signal_peak,
+        "amp_noise_peak"      : amp_noise_peak,
+        "amp_signal_db"       : amp_signal_db,
+        "amp_noise_db"        : amp_noise_db,
+        "amp_total_db"        : amp_total_db,
+        "p_signal"            : p_signal,
+        "p_noise"             : p_noise,
+        "p_total"             : p_total,
+        "snr_db"              : snr_db,
+        "f"                   : f,
+        "psd"                 : psd,
+        "signal_mask"         : signal_mask,
+        "noise_mask"          : noise_mask,
+        "noise_floor_density" : noise_floor_density,
+        "threshold"           : threshold,
+        "center_freq_hz"      : center_freq,
+        "signal_bandwidth_hz" : signal_bandwidth,
+        "n_signal_bins"       : n_signal_bins,
+        "n_noise_bins"        : n_noise_bins,
+        "n_total_bins"        : n_total_bins,
+        "delta_f"             : delta_f,
+        "N_samples"           : N,
+>>>>>>> d1850a4 (update source adding noise)
     }
 
 
@@ -182,14 +264,22 @@ def print_results(r: dict, fs: float) -> None:
 # VẼ ĐỒ THỊ
 # ══════════════════════════════════════════════════════════════════
 def plot_results(r: dict, fs: float, input_file: str) -> None:
+<<<<<<< HEAD
     f   = r["f"]
     psd = r["psd"]
+=======
+    f        = r["f"]
+    psd      = r["psd"]
+>>>>>>> d1850a4 (update source adding noise)
     sort_idx = np.argsort(f)
     f_mhz    = f[sort_idx] / 1e6
     psd_db   = 10 * np.log10(psd[sort_idx] + 1e-30)
     smask    = r["signal_mask"][sort_idx]
     nmask    = r["noise_mask"][sort_idx]
+<<<<<<< HEAD
 
+=======
+>>>>>>> d1850a4 (update source adding noise)
     nf_db    = 10 * np.log10(r["noise_floor_density"] + 1e-30)
     thr_db   = 10 * np.log10(r["threshold"] + 1e-30)
 
@@ -202,7 +292,11 @@ def plot_results(r: dict, fs: float, input_file: str) -> None:
         fontsize=11, fontweight='bold'
     )
 
+<<<<<<< HEAD
     # ── Subplot 1: PSD với phân vùng tín hiệu / nhiễu ──────────────
+=======
+    # Subplot 1: PSD
+>>>>>>> d1850a4 (update source adding noise)
     ax1 = axes[0]
     ax1.fill_between(f_mhz, psd_db, nf_db - 10,
                      where=smask, color='steelblue', alpha=0.35, label='Bin tín hiệu')
@@ -220,6 +314,7 @@ def plot_results(r: dict, fs: float, input_file: str) -> None:
     ax1.legend(fontsize=8, ncol=2)
     ax1.grid(True, alpha=0.35)
 
+<<<<<<< HEAD
     # ── Subplot 2: Thanh so sánh biên độ ───────────────────────────
     ax2 = axes[1]
     labels = ['Tín hiệu\n(Signal)', 'Nhiễu\n(Noise)', 'Tổng\n(S+N)']
@@ -242,6 +337,27 @@ def plot_results(r: dict, fs: float, input_file: str) -> None:
         ax2.text(bar.get_x() + bar.get_width()/2, h + max(rms_vals)*0.01,
                  f'{h:.5f}', ha='center', va='bottom', fontsize=8)
     for bar in bars_peak:
+=======
+    # Subplot 2: Thanh so sánh biên độ
+    ax2 = axes[1]
+    labels    = ['Tín hiệu\n(Signal)', 'Nhiễu\n(Noise)', 'Tổng\n(S+N)']
+    rms_vals  = [r['amp_signal_rms'], r['amp_noise_rms'], r['amp_total_rms']]
+    peak_vals = [r['amp_signal_peak'], r['amp_noise_peak'], 0]
+    c_rms     = ['steelblue', 'salmon', 'mediumpurple']
+    c_peak    = ['dodgerblue', 'tomato', 'white']
+
+    x, w = np.arange(3), 0.35
+    b1 = ax2.bar(x - w/2, rms_vals,  w, color=c_rms,  alpha=0.85,
+                 label='RMS', edgecolor='black', lw=0.8)
+    b2 = ax2.bar(x + w/2, peak_vals, w, color=c_peak, alpha=0.75,
+                 label='Peak (ước lượng)', edgecolor='black', lw=0.8, linestyle='--')
+
+    for bar in b1:
+        h = bar.get_height()
+        ax2.text(bar.get_x() + bar.get_width()/2, h + max(rms_vals)*0.01,
+                 f'{h:.5f}', ha='center', va='bottom', fontsize=8)
+    for bar in b2:
+>>>>>>> d1850a4 (update source adding noise)
         h = bar.get_height()
         if h > 0:
             ax2.text(bar.get_x() + bar.get_width()/2, h + max(rms_vals)*0.01,
@@ -253,8 +369,11 @@ def plot_results(r: dict, fs: float, input_file: str) -> None:
     ax2.set_title('So sánh biên độ RMS và Peak', fontsize=10)
     ax2.legend(fontsize=9)
     ax2.grid(True, axis='y', alpha=0.35)
+<<<<<<< HEAD
 
     # Thêm thông tin SNR vào subplot 2
+=======
+>>>>>>> d1850a4 (update source adding noise)
     ax2.text(0.98, 0.97,
              f"SNR = {r['snr_db']:.2f} dB\n"
              f"A_s / A_n = {r['amp_signal_rms']/r['amp_noise_rms']:.2f}×",
@@ -264,6 +383,7 @@ def plot_results(r: dict, fs: float, input_file: str) -> None:
                        edgecolor='gray', alpha=0.9))
 
     plt.tight_layout()
+<<<<<<< HEAD
     out_plot = "amplitude_analysis.png"
     plt.savefig(out_plot, dpi=150, bbox_inches='tight')
     print(f"✓  Đã lưu đồ thị: {out_plot}")
@@ -327,10 +447,23 @@ def save_iq(iq: np.ndarray, filepath: str) -> None:
 
     print(f"✓ Đã lưu IQ: {filepath}")
     print(f"✓ Kích thước: {size_mb:.2f} MB")   
+=======
+    stem = os.path.splitext(os.path.basename(input_file))[0]
+    out  = f"amplitude_analysis_{stem}.png"
+    plt.savefig(out, dpi=150, bbox_inches='tight')
+    print(f"✓  Đã lưu đồ thị: {out}")
+    plt.show()
+
+
+# ══════════════════════════════════════════════════════════════════
+# MAIN
+# ══════════════════════════════════════════════════════════════════
+>>>>>>> d1850a4 (update source adding noise)
 if __name__ == "__main__":
     fpath = sys.argv[1] if len(sys.argv) > 1 else input_file
 
     print(f"Đang đọc file: {fpath} ...")
+<<<<<<< HEAD
     iq_raw = load_iq(fpath)
     print(f"Đã đọc {len(iq_raw):,} mẫu IQ.")
 
@@ -360,3 +493,13 @@ if __name__ == "__main__":
     # In kết quả và vẽ đồ thị của tín hiệu mới đã đổi SNR
     print_results(results_modified, fs)
     plot_results(results_modified, fs, fpath + f"_snr_{TARGET_SNR}dB")
+=======
+    iq = load_iq(fpath)
+    print(f"Đã đọc {len(iq):,} mẫu IQ.")
+
+    print("\nĐang tính toán Welch PSD ...")
+    results = compute_amplitude(iq, fs, nperseg, SIGNAL_THRESHOLD_FACTOR)
+
+    print_results(results, fs)
+    plot_results(results, fs, fpath)
+>>>>>>> d1850a4 (update source adding noise)
